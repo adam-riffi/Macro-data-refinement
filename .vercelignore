@@ -1,0 +1,16 @@
+.git
+.venv
+node_modules
+tests
+artifacts
+.github
+.pytest_cache
+.coverage
+coverage.xml
+owner-docs
+private-docs
+*.drawio
+*.local
+.env
+.env.*
+!.env.example

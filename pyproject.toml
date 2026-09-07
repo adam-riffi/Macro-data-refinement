@@ -1,0 +1,18 @@
+[project]
+name = "macrodata-refinement"
+version = "1.0.0"
+description = "A Severance-inspired number refinement game."
+requires-python = ">=3.12,<3.13"
+dependencies = ["Flask==3.1.2", "itsdangerous==2.2.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = ["mdr", "app"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
