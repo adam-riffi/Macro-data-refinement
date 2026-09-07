@@ -227,6 +227,7 @@ export class RefinementTerminal {
         const cell = event.target.closest('[data-cell]');
         if (
           !cell ||
+          event.pointerType === 'touch' ||
           this.pending ||
           this.state?.status !== 'active' ||
           (event.button !== undefined && event.button !== 0)
@@ -630,9 +631,7 @@ export class RefinementTerminal {
       return;
     } else return;
     event.preventDefault();
-    this.element('number-grid')
-      .querySelector(`[data-cell="${target}"]`)
-      ?.focus({ preventScroll: true });
+    this.element('number-grid').querySelector(`[data-cell="${target}"]`)?.focus();
   }
 
   submit(bin) {
@@ -665,6 +664,9 @@ export class RefinementTerminal {
     this.notify(
       `Irregularity near ${this.coordinates(cluster.cells[0])}. Select the illuminated numbers.`,
     );
+    this.element('number-grid')
+      .querySelector(`[data-cell="${cluster.cells[0]}"]`)
+      ?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
     this.sound.play('scan');
     this.tick();
   }

@@ -2,6 +2,7 @@
 
 import pytest
 from jinja2 import DictLoader
+from werkzeug.exceptions import TooManyRequests
 
 from app import LOCAL_SECRET, create_app
 from mdr.engine import TOKEN_MAX_AGE
@@ -90,6 +91,17 @@ def test_http_error_serializes_missing_routes_and_method_errors(client):
     assert missing.status_code == 404 and isinstance(missing.get_json()["error"], str)
     wrong_method = client.get("/api/session")
     assert wrong_method.status_code == 405 and "error" in wrong_method.get_json()
+    assert wrong_method.headers["Allow"] == "POST"
+    assert wrong_method.headers["Content-Type"] == "application/json"
+
+
+def test_http_error_preserves_retry_after_and_recomputes_content_length(app):
+    with app.test_request_context("/api/session"):
+        response = app.handle_http_exception(TooManyRequests(retry_after=30))
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "30"
+    assert int(response.headers["Content-Length"]) == len(response.data)
+    assert "error" in response.get_json()
 
 
 def test_http_error_rejects_oversized_request(client):
@@ -111,6 +123,15 @@ def test_read_body_and_new_session_reject_invalid_json_objects(client, body):
 def test_read_body_rejects_malformed_json_and_non_json_content(client):
     assert client.post("/api/session", data="{broken", content_type="application/json").status_code == 400
     assert client.post("/api/session", data="mode=standard").status_code == 400
+
+
+@pytest.mark.parametrize("path", ["/api/session", "/api/restore", "/api/refine"])
+def test_read_body_rejects_excessive_json_nesting_as_client_error(client, path):
+    deeply_nested = '{"mode":' + "[" * 7000 + "0" + "]" * 7000 + "}"
+    response = client.post(path, data=deeply_nested, content_type="application/json")
+    assert response.status_code == 400
+    assert "nesting is too deep" in response.get_json()["error"]
+    assert response.headers["Cache-Control"] == "no-store"
 
 
 @pytest.mark.parametrize("path,body", [("/api/restore", {}), ("/api/restore", {"token": "fake", "score": 100}), ("/api/refine", {"token": "fake", "cells": []})])

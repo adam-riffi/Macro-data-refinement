@@ -479,7 +479,7 @@ h2 {
   min-width: 490px;
   min-height: 302px;
   user-select: none;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   position: relative;
 }
 #number-grid:empty::before {

@@ -1226,3 +1226,21 @@ test('RefinementTerminal.tick backs off deadline checks after a network interrup
   assert.equal(attempts, 2);
   assert.equal(terminal.token, 'signed-file-token');
 });
+
+test('RefinementTerminal.init allows touch scrolling while scan brings its group into view', async (t) => {
+  const { terminal, document, window } = setup(t);
+  await terminal.init();
+  const cell = document.querySelector('[data-cell="21"]');
+  const touch = new window.Event('pointerdown', { bubbles: true });
+  Object.defineProperty(touch, 'pointerType', { value: 'touch' });
+  cell.dispatchEvent(touch);
+  assert.equal(terminal.pointerStart, null);
+  let scrolled;
+  cell.scrollIntoView = (options) => {
+    scrolled = options;
+  };
+  terminal.scan();
+  assert.deepEqual(scrolled, { block: 'nearest', inline: 'center' });
+  cell.click();
+  assert.deepEqual([...terminal.selection], [21, 22, 41, 42]);
+});

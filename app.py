@@ -57,7 +57,10 @@ def create_app(config: dict | None = None, clock: Callable[[], float] = time.tim
 
     @app.errorhandler(HTTPException)
     def http_error(error):
-        return jsonify(error=error.description), error.code
+        response = error.get_response()
+        response.data = app.json.dumps({"error": error.description})
+        response.content_type = "application/json"
+        return response
 
     @app.errorhandler(ValueError)
     def value_error(error):
@@ -72,7 +75,10 @@ def create_app(config: dict | None = None, clock: Callable[[], float] = time.tim
         return jsonify(error=str(error)), 400
 
     def read_body(required: set[str], allowed: set[str]) -> dict:
-        body = request.get_json(silent=True)
+        try:
+            body = request.get_json(silent=True)
+        except RecursionError as error:
+            raise ValueError("JSON nesting is too deep. Send a simple request object.") from error
         if not isinstance(body, dict) or not required.issubset(body) or set(body) - allowed:
             raise ValueError("Send a JSON object with the required fields and no unknown fields.")
         return body
