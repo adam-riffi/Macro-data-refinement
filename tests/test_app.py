@@ -2,6 +2,7 @@
 
 import pytest
 from jinja2 import DictLoader
+from unittest.mock import patch
 from werkzeug.exceptions import TooManyRequests
 
 from app import LOCAL_SECRET, create_app
@@ -129,6 +130,15 @@ def test_read_body_rejects_malformed_json_and_non_json_content(client):
 def test_read_body_rejects_excessive_json_nesting_as_client_error(client, path):
     deeply_nested = '{"mode":' + "[" * 7000 + "0" + "]" * 7000 + "}"
     response = client.post(path, data=deeply_nested, content_type="application/json")
+    assert response.status_code == 400
+    # Decoder recursion limits differ by OS and Python patch release. Whether
+    # decoding fails or field validation runs, this must remain a client error.
+    assert isinstance(response.get_json()["error"], str)
+
+
+def test_read_body_translates_decoder_recursion_failure_to_400(client, app):
+    with patch.object(app.request_class, "get_json", side_effect=RecursionError("decoder depth")):
+        response = client.post("/api/session", data="{}", content_type="application/json")
     assert response.status_code == 400
     assert "nesting is too deep" in response.get_json()["error"]
     assert response.headers["Cache-Control"] == "no-store"
