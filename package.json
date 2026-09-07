@@ -1,0 +1,18 @@
+{
+  "name": "macrodata-refinement-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/js/*.test.js",
+    "test:browser": "playwright test",
+    "test:coverage": "node --experimental-test-coverage --test-coverage-include=public/assets/game.js --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=95 --test tests/js/*.test.js",
+    "format:check": "prettier --check public templates tests/js tests/browser playwright.config.js package.json vercel.json"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.55.1",
+    "jsdom": "26.1.0",
+    "prettier": "3.6.2"
+  }
+}
