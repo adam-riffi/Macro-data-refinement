@@ -25,6 +25,7 @@ DEDICATED_TESTS = {
     "app.py:create_app.new_session": "test_new_session_returns_complete_state_contract",
     "app.py:create_app.restore_session": "test_restore_session_returns_failed_state_after_game_deadline",
     "app.py:create_app.refine_session": "test_refine_session_validates_moves_and_returns_new_signed_progress",
+    "app.py:create_app.world_action": "test_world_action_dispatches_create_restore_capture_and_mistake",
     "mdr/engine.py:BoardGenerator.generate": "test_board_generator_generate_is_deterministic_and_round_specific",
     "mdr/engine.py:GameSession.new": "test_game_session_new_has_defaults_unique_identity_and_trimmed_filename",
     "mdr/engine.py:GameSession.from_payload": "test_game_session_from_payload_round_trips",
@@ -35,6 +36,17 @@ DEDICATED_TESTS = {
     "mdr/engine.py:SessionService.__init__": "test_session_service_init_rejects_short_secret",
     "mdr/engine.py:SessionService.encode": "test_session_service_encode_returns_signed_state_and_refreshes_expiration",
     "mdr/engine.py:SessionService.decode": "test_session_service_decode_round_trips_signed_session",
+    "mdr/world.py:WorldGenerator.cluster": "test_world_generator_cluster_is_deterministic_connected_and_varied",
+    "mdr/world.py:WorldGenerator.generate": "test_world_generator_generate_marks_completed_bins_and_closed_worlds_inactive",
+    "mdr/world.py:WorldSession.new": "test_world_session_new_has_unique_identity_independent_settings_and_trimmed_filename",
+    "mdr/world.py:WorldSession.to_payload": "test_world_session_to_payload_copies_bounded_counters_and_omits_rendered_world",
+    "mdr/world.py:WorldSession.from_payload": "test_world_session_from_payload_round_trips_active_captured_and_closed_runs",
+    "mdr/world.py:WorldSession.refresh": "test_world_session_refresh_expires_timed_runs_at_exact_deadline_and_freezes_finish",
+    "mdr/world.py:WorldSession.capture": "test_world_session_capture_scores_variable_cluster_and_replaces_it_in_another_zone",
+    "mdr/world.py:WorldSession.mistake": "test_world_session_mistake_applies_difficulty_without_penalizing_gathering",
+    "mdr/world.py:WorldSession.to_public": "test_world_session_to_public_exposes_quota_camera_world_and_freezes_elapsed_time",
+    "mdr/world.py:WorldService.__init__": "test_world_service_init_uses_distinct_signing_salt_and_injected_clock",
+    "mdr/world.py:WorldService.decode": "test_world_service_decode_round_trips_signed_bounded_state",
 }
 
 
@@ -63,7 +75,7 @@ def test_every_production_function_has_a_dedicated_behavioral_test():
     )
 
     named_tests = {}
-    for name in ("test_engine.py", "test_app.py"):
+    for name in ("test_engine.py", "test_app.py", "test_world.py", "test_world_api.py"):
         tree = ast.parse((root / "tests" / name).read_text(encoding="utf-8"))
         named_tests.update({
             node.name: node for node in ast.walk(tree)

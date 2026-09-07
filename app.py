@@ -5,10 +5,11 @@ from pathlib import Path
 import time
 from typing import Callable
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, abort, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException, MethodNotAllowed
 
 from mdr.engine import ExpiredSession, GameSession, InvalidSession, SessionService
+from mdr.world import WorldService, WorldSession
 
 
 LOCAL_SECRET = "mdr-local-development-only-do-not-use-in-production"
@@ -31,6 +32,7 @@ def create_app(config: dict | None = None, clock: Callable[[], float] = time.tim
     if app.config["MDR_PRODUCTION"] and secret == LOCAL_SECRET:
         secret_valid = False
     app.extensions["mdr_service"] = SessionService(secret, clock) if secret_valid else None
+    app.extensions["world_service"] = WorldService(secret, clock) if secret_valid else None
 
     @app.before_request
     def check_request():
@@ -38,7 +40,7 @@ def create_app(config: dict | None = None, clock: Callable[[], float] = time.tim
             return jsonify(error="Not found."), 404
         if request.path.startswith("/api/") and app.extensions["mdr_service"] is None:
             return jsonify(error="Refinement is temporarily unavailable. Configure MDR_SECRET_KEY on the server."), 503
-        if request.endpoint == "static" and request.path in {"/api/session", "/api/restore", "/api/refine"}:
+        if request.endpoint == "static" and request.path in {"/api/session", "/api/restore", "/api/refine", "/api/v2/session", "/api/v2/restore", "/api/v2/capture", "/api/v2/mistake"}:
             raise MethodNotAllowed(valid_methods=["POST"])
         return None
 
@@ -110,6 +112,22 @@ def create_app(config: dict | None = None, clock: Callable[[], float] = time.tim
         service = app.extensions["mdr_service"]
         session = service.decode(body["token"])
         feedback = session.refine(body["cells"], body["bin"], clock())
+        return jsonify(**service.encode(session), feedback=feedback)
+
+    @app.post("/api/v2/<action>")
+    def world_action(action):
+        fields = {"session": (set(), {"mode", "difficulty", "file"}), "restore": ({"token"}, {"token"}), "capture": ({"token", "cluster_id"}, {"token", "cluster_id"}), "mistake": ({"token", "cell"}, {"token", "cell"})}
+        if action not in fields:
+            abort(404)
+        body = read_body(*fields[action])
+        service = app.extensions["world_service"]
+        if action == "session":
+            session = WorldSession.new(body.get("mode", "quota"), body.get("difficulty", "normal"), body.get("file", "Cold Harbor"), clock())
+            return jsonify(service.encode(session))
+        session = service.decode(body["token"])
+        if action == "restore":
+            return jsonify(service.encode(session))
+        feedback = session.capture(body["cluster_id"], clock()) if action == "capture" else session.mistake(body["cell"], clock())
         return jsonify(**service.encode(session), feedback=feedback)
 
     return app
