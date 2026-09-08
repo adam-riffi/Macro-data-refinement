@@ -87,7 +87,7 @@ def create_app(config: dict | None = None, clock: Callable[[], float] = time.tim
 
     @app.get("/")
     def index():
-        return render_template("index.html")
+        return render_template("terminal.html")
 
     @app.get("/api/health")
     def health():

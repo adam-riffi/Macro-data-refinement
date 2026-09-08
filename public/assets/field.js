@@ -110,11 +110,11 @@ export class ClusterMotion {
   ready(now) {
     return this.releasedAt === null && this.progress(now) >= 1;
   }
-  position(index, base, now, reducedMotion = false) {
+  position(index, base, now, reducedMotion = false, zoom = 1) {
     const p = this.progress(now),
       ease = p * p * (3 - 2 * p),
       anchor = this.anchorAt(now);
-    const radius = Math.sqrt(index + 1) * 19,
+    const radius = Math.sqrt(index + 1) * 19 * zoom,
       angle = index * 2.39996;
     return {
       x: reducedMotion ? base.x : base.x + (anchor.x + Math.cos(angle) * radius - base.x) * ease,
@@ -185,7 +185,13 @@ export class NumberField {
     if (this.motion)
       for (let i = 0; i < this.motion.cluster.cells.length; i++) {
         const id = this.motion.cluster.cells[i],
-          p = this.motion.position(i, this.basePosition(id, now), now, this.reducedMotion);
+          p = this.motion.position(
+            i,
+            this.basePosition(id, now),
+            now,
+            this.reducedMotion,
+            this.camera.zoom,
+          );
         if (
           Math.abs(x - p.x) < 13 * p.scale * this.camera.zoom &&
           Math.abs(y - p.y) < 17 * p.scale * this.camera.zoom
@@ -211,15 +217,14 @@ export class NumberField {
     if (
       this.motion &&
       this.motion.releasedAt === null &&
-      Math.hypot(x - this.motion.origin.x, y - this.motion.origin.y) < 155
+      Math.hypot(x - this.motion.origin.x, y - this.motion.origin.y) < 155 * this.camera.zoom
     ) {
       this.motion.move(x, y, now);
       return this.motion.cluster;
     }
     this.leave(now);
     const hit = this.hitTest(x, y, now);
-    if (hit?.cluster && (!this.motion || hit.cluster.id !== this.motion.cluster.id))
-      this.motion = new ClusterMotion(hit.cluster, x, y, now);
+    if (hit?.cluster) this.motion = new ClusterMotion(hit.cluster, x, y, now);
     return this.motion?.releasedAt === null ? this.motion.cluster : null;
   }
   leave(now) {
@@ -237,7 +242,7 @@ export class NumberField {
         base = this.basePosition(id, now);
       const from =
         this.motion?.cluster.id === cluster.id
-          ? this.motion.position(index, base, now, this.reducedMotion)
+          ? this.motion.position(index, base, now, this.reducedMotion, this.camera.zoom)
           : base;
       this.particles.push({
         from,
@@ -279,7 +284,13 @@ export class NumberField {
       else {
         for (let i = 0; i < this.motion.cluster.cells.length; i++) {
           const id = this.motion.cluster.cells[i],
-            p = this.motion.position(i, this.basePosition(id, now), now, this.reducedMotion);
+            p = this.motion.position(
+              i,
+              this.basePosition(id, now),
+              now,
+              this.reducedMotion,
+              this.camera.zoom,
+            );
           ctx.font = `${22 * this.camera.zoom * p.scale}px "Courier New", monospace`;
           ctx.fillStyle = this.motion.ready(now) ? '#e0f8f6' : '#bce5eb';
           ctx.fillText(String(this.value(id)), p.x, p.y);

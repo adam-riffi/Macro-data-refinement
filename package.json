@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --test tests/js/*.test.js",
     "test:browser": "playwright test",
-    "test:coverage": "node --experimental-test-coverage --test-coverage-include=public/assets/game.js --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=95 --test tests/js/*.test.js",
+    "test:coverage": "node --experimental-test-coverage --test-coverage-include=public/assets/*.js --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=95 --test tests/js/*.test.js",
     "format:check": "prettier --check public templates tests/js tests/browser playwright.config.js package.json vercel.json"
   },
   "devDependencies": {

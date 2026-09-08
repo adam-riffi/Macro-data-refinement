@@ -12,7 +12,7 @@ from mdr.engine import TOKEN_MAX_AGE
 @pytest.fixture
 def app():
     application = create_app({"TESTING": True, "MDR_PRODUCTION": False, "MDR_SECRET_KEY": "a-test-secret-with-at-least-32-characters"}, clock=lambda: 1000.0)
-    application.jinja_loader = DictLoader({"index.html": "<!doctype html><title>Macrodata Refinement</title>"})
+    application.jinja_loader = DictLoader({"terminal.html": "<!doctype html><title>Macrodata Refinement</title>"})
     return application
 
 
@@ -36,7 +36,7 @@ def test_create_app_uses_stable_development_secret(monkeypatch):
 @pytest.mark.parametrize("secret", [None, "short", "x" * 48, LOCAL_SECRET])
 def test_create_app_fails_closed_for_missing_or_weak_production_secret(secret):
     application = create_app({"TESTING": True, "MDR_PRODUCTION": True, "MDR_SECRET_KEY": secret})
-    application.jinja_loader = DictLoader({"index.html": "The department is preparing."})
+    application.jinja_loader = DictLoader({"terminal.html": "The department is preparing."})
     client = application.test_client()
     assert client.get("/").status_code == 200
     assert client.get("/api/health").status_code == 503

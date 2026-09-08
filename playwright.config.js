@@ -8,16 +8,16 @@ export default defineConfig({
   workers: process.env.CI ? 2 : 3,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:5000',
+    baseURL: 'http://127.0.0.1:5001',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   webServer: {
     command:
       process.platform === 'win32'
-        ? '.venv\\Scripts\\python.exe -m flask --app app run --host 127.0.0.1 --port 5000'
-        : 'python -m flask --app app run --host 127.0.0.1 --port 5000',
-    url: 'http://127.0.0.1:5000/api/health',
+        ? '.venv\\Scripts\\python.exe -m flask --app app run --host 127.0.0.1 --port 5001'
+        : 'python -m flask --app app run --host 127.0.0.1 --port 5001',
+    url: 'http://127.0.0.1:5001/api/health',
     reuseExistingServer: !process.env.CI,
     timeout: 30000,
   },

@@ -1,14 +1,16 @@
 # Macrodata Refinement
 
-An independent, Severance-inspired browser game. Find unusual four-number patterns, refine them into five bins, and complete a file across four data cycles. A Python object-oriented engine validates every move; a lightweight JavaScript terminal handles the interactive number field.
+An independent, Severance-inspired browser game. Explore a full-screen terminal containing 40,960 animated numbers. Discover irregular groups, let them gather around your pointer, and click to send them automatically to the correct bin. A Python object-oriented engine validates each move; a Canvas 2D terminal renders only the visible part of the world.
 
-Includes three shift modes, scoring and streaks, mouse/touch/keyboard controls, a scan assist, saved progress, a local archive, optional procedural sound, reduced motion, and a completion reward. The design uses original CSS/SVG artwork and system fonts, with no third-party media requests.
+Clusters contain 3–18 numbers with variable shapes and scores. Gathering takes 1.5 seconds; captured digits refill immediately while copies animate into the bins. Drag to explore, zoom around your pointer, or use touch and keyboard navigation. Includes saved camera/progress, a local archive, optional sound and reduced motion. No third-party media requests or frontend build step.
 
-| Shift       | Time       | File closes on |
-| ----------- | ---------- | -------------- |
-| Orientation | Unlimited  | 8th mistake    |
-| Standard    | 15 minutes | 5th mistake    |
-| Overtime    | 8 minutes  | 3rd mistake    |
+| Gameplay | Objective |
+| --- | --- |
+| Quota | Refine 100 numbers into each of five bins, untimed |
+| Timed shift | Meet the same quotas within 15 minutes |
+| Endless | Complete repeating quota cycles without a timer |
+
+Choose difficulty independently: **Normal** has no ordinary-click penalty; **Quota achiever** subtracts up to 50 points; **Refiner of the quarter** ends the run on the third strike. Early clicks while a scary group is gathering are harmless in every difficulty.
 
 ## Run locally
 
@@ -23,9 +25,9 @@ python -m pip install -r requirements-dev.txt
 python -m flask --app app run
 ```
 
-Open http://127.0.0.1:5000. A Standard shift starts automatically. Use **Open a file** to choose another mode or assignment. Click a glowing group, then click the indicated bin or press 1–5. Arrow keys navigate the field; Space selects; Escape clears. The employee handbook explains the rules in the game.
+Open http://127.0.0.1:5000. An untimed Normal assignment starts automatically. Use **[ FILE ]** to choose another mode and difficulty. Hover for 1.5 seconds, then click a gathered group; on touch, hold and release. Drag or use arrows/WASD to navigate. Scroll/pinch or +/− to zoom. F cycles signals already visible in the viewport; Enter/Space refines after gathering. **[ ? ]** opens the complete protocol.
 
-Progress is saved in the current browser. A timed shift continues while a dialog or another tab is open. Saved tokens expire after 24 hours without refresh. The archive keeps the last 30 closed files.
+Progress and camera position save in this browser. Timed shifts continue while away. Signed tokens expire after 24 hours without refresh. The log keeps the last 30 closed files. V2 saves use separate keys and signing format; original v1 saves remain untouched, with a local backup when storage permits.
 
 ## Verify
 
@@ -37,7 +39,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Python tests enforce 100% statement and branch coverage. Separate audits require dedicated behavioral tests for each handwritten Python function and each browser class method. Browser tests run against the real Flask API on desktop and mobile viewports, including a complete file, save recovery, failure, keyboard input, pointer selection, settings, and automated accessibility checks.
+Python tests enforce 100% statement and branch coverage. Separate audits require dedicated behavioral tests for each handwritten Python function and each browser class method. Browser tests use the real Flask API on port 5001 with desktop and mobile viewports, including hover/capture/refill, navigation, persistence, difficulty settings, keyboard/touch controls and automated accessibility checks.
 
 ## Deploy to Vercel
 
@@ -52,7 +54,7 @@ The tokens are signed, not encrypted. Puzzle geometry is visible to the browser,
 
 ## Project boundaries
 
-`mdr/` contains the domain model and session codec. `app.py` provides the Flask API. `templates/` and `public/assets/` contain the browser terminal. `tests/` contains backend, browser-unit, and end-to-end tests.
+`mdr/world.py` contains the v2 domain model and signed session codec. `app.py` provides `/api/v2/session`, `/restore`, `/capture` and `/mistake`. `templates/terminal.html`, `public/assets/terminal.js`, `field.js` and `session.js` implement the terminal. `tests/` contains backend, browser-unit and end-to-end tests. The v1 engine/API and original browser assets remain covered for compatibility but are not loaded by the new interface.
 
 Detailed owner documentation and editable draw.io diagrams are deliberately kept outside this public repository and deployment. This README contains only public setup information.
 
