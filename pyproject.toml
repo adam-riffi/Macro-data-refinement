@@ -1,6 +1,6 @@
 [project]
 name = "macrodata-refinement"
-version = "1.0.0"
+version = "2.0.0"
 description = "A Severance-inspired number refinement game."
 requires-python = ">=3.12,<3.13"
 dependencies = ["Flask==3.1.2", "itsdangerous==2.2.0"]

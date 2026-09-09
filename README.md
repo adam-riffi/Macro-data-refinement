@@ -1,8 +1,8 @@
 # Macrodata Refinement
 
-An independent, Severance-inspired browser game. Explore a full-screen terminal containing 40,960 animated numbers. Discover irregular groups, let them gather around your pointer, and click to send them automatically to the correct bin. A Python object-oriented engine validates each move; a Canvas 2D terminal renders only the visible part of the world.
+An independent, Severance-inspired browser game. Explore a full-screen terminal containing 40,960 animated numbers. Discover irregular groups, watch their agitation spread outward, and click to send them automatically to the correct bin. A Python object-oriented engine validates each move; a Canvas 2D terminal renders only the visible part of the world.
 
-Clusters contain 3–18 numbers with variable shapes and scores. Gathering takes 1.5 seconds; captured digits refill immediately while copies animate into the bins. Drag to explore, zoom around your pointer, or use touch and keyboard navigation. Includes saved camera/progress, a local archive, optional sound and reduced motion. No third-party media requests or frontend build step.
+Clusters contain 3–18 numbers with variable shapes and scores. Identification takes 1.5 seconds: digits slowly thicken and tremble in place. Captured cells stay empty briefly before replacement digits fade in while captured copies fly into the bins. Drag to explore a field that wraps in every direction, zoom around your pointer, or use touch and keyboard navigation. Includes saved camera/progress, a local archive, optional sound and reduced motion. CRT glass shading, phosphor glow, scanlines and a slow refresh band complete the display; reduced motion disables the refresh band. No third-party media requests or frontend build step.
 
 | Gameplay | Objective |
 | --- | --- |
@@ -43,7 +43,7 @@ Python tests enforce 100% statement and branch coverage. Separate audits require
 
 ## Deploy to Vercel
 
-1. Import this repository into Vercel and use its root as the project root. For the complete unmerged implementation, deploy the final branch in the PR stack.
+1. Import this repository into Vercel and use its root as the project root. For the complete unmerged v2 implementation, deploy `chore/refinement-v2-verification`. Review and merge stacked PRs from oldest to newest; no merge is required to preview the final branch.
 2. Use the checked-in Flask configuration. `app.py` exports the application and `public/` contains browser assets.
 3. Set a stable, randomly generated `MDR_SECRET_KEY` for Preview and Production. Use different values for those environments. Generate one locally with `python -c "import secrets; print(secrets.token_urlsafe(48))"` and enter it in Vercel's environment settings; never commit it.
 4. Deploy, check `/api/health`, then refine a group and reload to verify the save.

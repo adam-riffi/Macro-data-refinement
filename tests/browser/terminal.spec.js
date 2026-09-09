@@ -95,7 +95,7 @@ test('a real mouse gathers for 1.5 seconds, ignores early clicks, and sends refi
   await assign(page, 'quota', 'quarter_refiner');
   const target = await centerCluster(page);
   await page.mouse.move(target.point.x, target.point.y);
-  await expect(page.locator('#feedback')).toContainText('GATHERING');
+  await expect(page.locator('#feedback')).toContainText('IDENTIFYING');
   await page.mouse.click(target.point.x, target.point.y);
   expect((await readTerminal(page)).state.revision).toBe(0);
   expect((await readTerminal(page)).state.mistakes).toBe(0);
@@ -146,7 +146,7 @@ test('moving away releases a gathered cluster without a capture or penalty', asy
   await openTerminal(page);
   const target = await centerCluster(page);
   await page.mouse.move(target.point.x, target.point.y);
-  await expect(page.locator('#feedback')).toContainText('GATHERING');
+  await expect(page.locator('#feedback')).toContainText('IDENTIFYING');
   await page.mouse.move(0, 0);
   await expect
     .poll(() =>
@@ -238,7 +238,7 @@ test('keyboard navigation focuses only a visible signal and Enter refines it', a
   await page.keyboard.press('ArrowRight');
   expect((await readTerminal(page)).camera.x).toBeGreaterThan(before.x);
   await page.keyboard.press('f');
-  await expect(page.locator('#feedback')).toContainText(/GATHERING|Visible signal/i);
+  await expect(page.locator('#feedback')).toContainText(/IDENTIFYING|Visible signal/i);
   await page.keyboard.press('Enter');
   expect((await readTerminal(page)).state.revision).toBe(0);
   await expect(page.locator('#feedback')).toContainText('CLICK TO REFINE', { timeout: 3000 });

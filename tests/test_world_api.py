@@ -52,6 +52,20 @@ def test_world_api_exposes_all_nine_mode_difficulty_combinations(world_client, m
     assert len(state["world"]["clusters"]) == 80 and len(state["bins"]) == 5
 
 
+@pytest.mark.parametrize("path", ["/owner-docs/V2-REFERENCE.md", "/owner-docs/DELIVERY-v2.md", "/diagrams/v2-architecture.drawio", "/mdr/world.py", "/templates/terminal.html", "/tests/browser/release.spec.js"])
+def test_v2_release_keeps_private_material_and_sources_outside_static_routes(world_client, path):
+    assert world_client.get(path).status_code == 404
+
+
+def test_v2_index_boots_only_current_terminal_without_legacy_dashboard(world_client):
+    response = world_client.get("/")
+    assert response.status_code == 200
+    assert b"/assets/terminal-boot.js" in response.data
+    assert b"number-field" in response.data and b"flight-layer" in response.data
+    assert b"/assets/boot.js" not in response.data and b"number-cell" not in response.data
+    assert response.headers["Content-Security-Policy"].startswith("default-src 'self'")
+
+
 @pytest.mark.parametrize("action", ["session", "restore", "capture", "mistake"])
 def test_world_api_requires_post_and_secures_all_responses(world_client, action):
     response = world_client.get(f"/api/v2/{action}")

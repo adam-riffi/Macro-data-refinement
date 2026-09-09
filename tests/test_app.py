@@ -62,7 +62,7 @@ def test_index_renders_the_terminal(client):
 def test_health_returns_minimal_readiness_json(client):
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.get_json() == {"status": "ok", "version": "1.0.0"}
+    assert response.get_json() == {"status": "ok", "version": "2.0.0"}
 
 
 @pytest.mark.parametrize("path", ["/.env", "/.git/config", "/.private/architecture.md", "/assets/.hidden", "/../app.py", "/%2e%2e/app.py", "/private-docs/index.md", "/docs/private/architecture.drawio", "/app.py", "/mdr/engine.py", "/requirements.txt", "/tests/test_engine.py"])

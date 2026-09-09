@@ -59,15 +59,15 @@ test('Camera.constructor centers a bounded world', () => {
   assert.equal(c.y, 3360);
   assert.equal(c.zoom, 1);
 });
-test('Camera.clamp prevents world edges and invalid zoom exposing empty space', () => {
+test('Camera.clamp wraps world edges and constrains zoom', () => {
   const c = new Camera(800, 600);
   c.x = -1;
   c.y = 999999;
   c.zoom = 100;
   c.clamp();
   assert.equal(c.zoom, 3);
-  assert.equal(c.x, 800 / 6);
-  assert.equal(c.y, 6720 - 100);
+  assert.equal(c.x, 9215);
+  assert.equal(c.y, 999999 % 6720);
   c.zoom = 0.01;
   c.clamp();
   assert.equal(c.zoom, 0.5);
@@ -108,10 +108,10 @@ test('Camera.visibleBounds culls the large world and bounds edge indices', () =>
   assert.ok((b.right - b.left) * (b.bottom - b.top) < 1000);
   c.x = 0;
   c.y = 0;
-  assert.equal(c.visibleBounds().left, 0);
+  assert.ok(c.visibleBounds().left < 0);
   c.x = 99999;
   c.y = 99999;
-  assert.equal(c.visibleBounds().right, 256);
+  assert.ok(c.visibleBounds().right > 256);
 });
 test('Camera.snapshot records an independent view object', () => {
   const c = new Camera(800, 600),
@@ -166,16 +166,21 @@ test('ClusterMotion.ready requires completed gathering and no release', () => {
   m.leave(1600);
   assert.equal(m.ready(1700), false);
 });
-test('ClusterMotion.position enlarges and attracts digits while reduced motion preserves location', () => {
-  const m = new ClusterMotion(cluster, 50, 50, 0),
-    base = { x: 300, y: 300 };
-  assert.deepEqual(m.position(0, base, 0), { ...base, scale: 1 });
-  const p = m.position(0, base, 1500);
-  assert.equal(p.scale, 1.85);
-  assert.ok(p.x < 100);
-  assert.deepEqual(m.position(0, base, 1500, true), { ...base, scale: 1.85 });
-  assert.equal(m.position(0, base, 1500, false, 3).x - 50, (p.x - 50) * 3);
+test('ClusterMotion.position spreads subtle agitation outwards without attracting digits', () => {
+  const m = new ClusterMotion(cluster, 50, 50, 0);
+  const near = { x: 50, y: 50 },
+    far = { x: 180, y: 50 };
+  assert.equal(m.position(0, near, 400).scale > 1, true);
+  assert.equal(m.position(1, far, 400).scale, 1);
+  const p = m.position(1, far, 2000);
+  assert.equal(p.scale, 1.06);
+  assert.ok(Math.hypot(p.x - far.x, p.y - far.y) < 4);
+  assert.deepEqual(m.position(1, far, 2000, true), { ...far, scale: 1.06 });
+  m.move(900, 900, 2000);
+  const later = m.position(1, far, 3000);
+  assert.ok(Math.hypot(later.x - far.x, later.y - far.y) < 4);
 });
+
 test('NumberField.constructor supports a shared canvas and motion preference', () => {
   const canvas = { getContext: () => ({}) },
     f = new NumberField(canvas, { reducedMotion: true });
@@ -287,11 +292,11 @@ test('NumberField.dispose clears references and transient effects', () => {
   assert.equal(field.particles.length, 0);
 });
 
-test('Camera.clamp centers worlds smaller than the viewport without inverted bounds', () => {
+test('Camera.clamp wraps smaller worlds without inverted bounds', () => {
   const camera = new Camera(1200, 900, 10, 8);
   camera.pan(100000, -100000);
-  assert.deepEqual(camera.snapshot(), { x: 180, y: 168, zoom: 1 });
-  assert.deepEqual(camera.visibleBounds(0), { left: 0, top: 0, right: 10, bottom: 8 });
+  assert.deepEqual(camera.snapshot(), { x: 260, y: 40, zoom: 1 });
+  assert.ok(camera.visibleBounds(0).left < 0);
 });
 
 test('Camera.zoomAt clamps both limits while keeping an interior pointer anchor stable', () => {
@@ -305,20 +310,20 @@ test('Camera.zoomAt clamps both limits while keeping an interior pointer anchor 
   assert.deepEqual(camera.screenToWorld(375, 210), point);
 });
 
-test('Camera.visibleBounds never exposes indices outside any clamped corner at any supported zoom', () => {
+test('Camera.visibleBounds covers the viewport across wrapped corners at every zoom', () => {
   const camera = new Camera(1440, 900);
   for (const zoom of [0.5, 1, 3]) {
     for (const x of [-100000, 100000]) {
       for (const y of [-100000, 100000]) {
         camera.restore({ x, y, zoom });
         const bounds = camera.visibleBounds(0);
-        assert.ok(bounds.left >= 0 && bounds.top >= 0);
-        assert.ok(bounds.right <= 256 && bounds.bottom <= 160);
+        assert.ok(camera.x >= 0 && camera.y >= 0);
+        assert.ok(camera.x < 256 * CELL_WIDTH && camera.y < 160 * CELL_HEIGHT);
         assert.ok(bounds.left < bounds.right && bounds.top < bounds.bottom);
         const start = camera.screenToWorld(0, 0);
         const end = camera.screenToWorld(camera.width, camera.height);
-        assert.ok(start.x >= 0 && start.y >= 0);
-        assert.ok(end.x <= 256 * CELL_WIDTH && end.y <= 160 * CELL_HEIGHT);
+        assert.ok(bounds.left * CELL_WIDTH <= start.x && bounds.top * CELL_HEIGHT <= start.y);
+        assert.ok(bounds.right * CELL_WIDTH >= end.x && bounds.bottom * CELL_HEIGHT >= end.y);
       }
     }
   }
@@ -369,7 +374,7 @@ test('ClusterMotion.position gives differently indexed members distinct gathered
     new Set(gathered.map((point) => `${point.x}:${point.y}`)).size,
     cluster.cells.length,
   );
-  assert.ok(gathered.every((point) => Math.hypot(point.x - 100, point.y - 100) < 50));
+  assert.ok(gathered.every((point) => Math.hypot(point.x - base.x, point.y - base.y) < 4));
   motion.leave(1500);
   assert.deepEqual(motion.position(3, base, 1950), { ...base, scale: 1 });
 });
@@ -457,21 +462,21 @@ test('NumberField.hitTest can traverse every gathered member and ignore the gap 
   const ordinary = field.basePosition(1002, 0);
   assert.equal(field.hitTest(ordinary.x + CELL_WIDTH / 2, ordinary.y + CELL_HEIGHT / 2, 0), null);
   const edge = field.camera.worldToScreen(256 * CELL_WIDTH + 1000, 160 * CELL_HEIGHT + 1000);
-  assert.equal(field.hitTest(edge.x, edge.y, 0), null);
+  assert.ok(field.hitTest(edge.x, edge.y, 0));
 });
 
-test('NumberField.hover retains the same target during gradual attraction even when glyphs move away', () => {
+test('NumberField.hover retains agitation while the pointer stays near cluster members', () => {
   const { field } = fixture();
   const pointer = field.basePosition(1000, 0);
   field.hover(pointer.x, pointer.y, 0);
   const motion = field.motion;
   for (const now of [150, 450, 750, 1000, 1500, 1800]) {
-    assert.equal(field.hover(pointer.x + 140, pointer.y, now), cluster);
+    assert.equal(field.hover(pointer.x + 12, pointer.y, now), cluster);
     assert.equal(field.motion, motion);
     assert.equal(motion.startedAt, 0);
   }
   assert.equal(field.readyCluster(1800), cluster);
-  assert.ok(motion.anchorAt(1900).x > pointer.x + 130);
+  assert.ok(motion.anchorAt(1900).x > pointer.x);
 });
 
 test('NumberField.hover handles ordinary cells, released targets, and a distinct newly discovered cluster', () => {
@@ -605,10 +610,7 @@ test('NumberField.draw animates a partial release before removing its expired ov
   field.leave(1500);
   field.draw(1600);
   assert.notEqual(field.motion, null);
-  assert.equal(
-    calls.filter((call) => call[0] === 'digit').length,
-    field.visibleCount + cluster.cells.length,
-  );
+  assert.equal(calls.filter((call) => call[0] === 'digit').length, field.visibleCount);
   field.draw(1950);
   assert.equal(field.motion, null);
 });
@@ -646,4 +648,48 @@ test('NumberField.hover restarts gathering when returning during release without
   assert.equal(field.readyCluster(1699), null);
   field.draw(1700);
   assert.equal(field.readyCluster(1700), cluster);
+});
+
+test('NumberField.draw leaves captured cells empty before gradually fading replacements in', () => {
+  const { field } = fixture();
+  const samples = [];
+  field.context.fillText = function (value, x, y) {
+    samples.push({ x, y, alpha: this.globalAlpha });
+  };
+  field.capture(cluster, { x: 0, y: 0 }, 0);
+  field.particles = [];
+  for (const [now, alpha] of [
+    [500, 0],
+    [1550, 0.5],
+    [2500, 1],
+  ]) {
+    samples.length = 0;
+    field.draw(now);
+    const base = field.basePosition(cluster.cells[0], now);
+    assert.equal(samples.find((p) => p.x === base.x && p.y === base.y).alpha, alpha);
+  }
+  assert.equal(field.refills.size, 0);
+});
+test('NumberField wraps navigation and hit testing seamlessly across all four edges', () => {
+  const { field } = fixture();
+  field.setReducedMotion(true);
+  for (const [x, y] of [
+    [0, 0],
+    [9215, 6719],
+    [0, 6719],
+    [9215, 0],
+  ]) {
+    field.camera.restore({ x, y, zoom: 1 });
+    for (const id of [0, 255, 159 * 256, 40959]) {
+      const p = field.basePosition(id, 0);
+      assert.equal(field.hitTest(p.x, p.y, 0).id, id);
+    }
+    field.draw(0);
+    assert.ok(field.visibleCount > 400);
+  }
+  field.camera.restore({ x: 10, y: 10, zoom: 1 });
+  field.camera.pan(20, 20);
+  assert.deepEqual(field.camera.snapshot(), { x: 9206, y: 6710, zoom: 1 });
+  field.camera.pan(-20, -20);
+  assert.deepEqual(field.camera.snapshot(), { x: 10, y: 10, zoom: 1 });
 });

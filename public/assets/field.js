@@ -15,10 +15,14 @@ export class Camera {
   }
   clamp() {
     this.zoom = Math.max(0.5, Math.min(3, this.zoom));
-    const halfX = Math.min(this.width / (2 * this.zoom), (this.columns * CELL_WIDTH) / 2);
-    const halfY = Math.min(this.height / (2 * this.zoom), (this.rows * CELL_HEIGHT) / 2);
-    this.x = Math.max(halfX, Math.min(this.columns * CELL_WIDTH - halfX, this.x));
-    this.y = Math.max(halfY, Math.min(this.rows * CELL_HEIGHT - halfY, this.y));
+    if (this.x < 0 || this.x >= this.columns * CELL_WIDTH)
+      this.x =
+        ((this.x % (this.columns * CELL_WIDTH)) + this.columns * CELL_WIDTH) %
+        (this.columns * CELL_WIDTH);
+    if (this.y < 0 || this.y >= this.rows * CELL_HEIGHT)
+      this.y =
+        ((this.y % (this.rows * CELL_HEIGHT)) + this.rows * CELL_HEIGHT) %
+        (this.rows * CELL_HEIGHT);
   }
   resize(width, height) {
     this.width = Math.max(1, width);
@@ -32,8 +36,18 @@ export class Camera {
   }
   worldToScreen(x, y) {
     return {
-      x: (x - this.x) * this.zoom + this.width / 2,
-      y: (y - this.y) * this.zoom + this.height / 2,
+      x:
+        (x -
+          this.x -
+          Math.round((x - this.x) / (this.columns * CELL_WIDTH)) * this.columns * CELL_WIDTH) *
+          this.zoom +
+        this.width / 2,
+      y:
+        (y -
+          this.y -
+          Math.round((y - this.y) / (this.rows * CELL_HEIGHT)) * this.rows * CELL_HEIGHT) *
+          this.zoom +
+        this.height / 2,
     };
   }
   screenToWorld(x, y) {
@@ -54,10 +68,10 @@ export class Camera {
     const left = this.screenToWorld(0, 0),
       right = this.screenToWorld(this.width, this.height);
     return {
-      left: Math.max(0, Math.floor(left.x / CELL_WIDTH) - pad),
-      top: Math.max(0, Math.floor(left.y / CELL_HEIGHT) - pad),
-      right: Math.min(this.columns, Math.ceil(right.x / CELL_WIDTH) + pad),
-      bottom: Math.min(this.rows, Math.ceil(right.y / CELL_HEIGHT) + pad),
+      left: Math.floor(left.x / CELL_WIDTH) - pad,
+      top: Math.floor(left.y / CELL_HEIGHT) - pad,
+      right: Math.ceil(right.x / CELL_WIDTH) + pad,
+      bottom: Math.ceil(right.y / CELL_HEIGHT) + pad,
     };
   }
   snapshot() {
@@ -111,15 +125,26 @@ export class ClusterMotion {
     return this.releasedAt === null && this.progress(now) >= 1;
   }
   position(index, base, now, reducedMotion = false, zoom = 1) {
-    const p = this.progress(now),
-      ease = p * p * (3 - 2 * p),
-      anchor = this.anchorAt(now);
-    const radius = Math.sqrt(index + 1) * 19 * zoom,
-      angle = index * 2.39996;
+    const distance = Math.hypot(base.x - this.origin.x, base.y - this.origin.y) / zoom;
+    const delay = Math.min(850, distance * 5);
+    const p =
+      this.releasedAt === null
+        ? Math.max(0, Math.min(1, (now - this.startedAt - delay) / 1000))
+        : this.progress(now);
+    const phase = index * 2.39996;
+    const agitation = p * zoom;
     return {
-      x: reducedMotion ? base.x : base.x + (anchor.x + Math.cos(angle) * radius - base.x) * ease,
-      y: reducedMotion ? base.y : base.y + (anchor.y + Math.sin(angle) * radius - base.y) * ease,
-      scale: 1 + p * 0.85,
+      x:
+        base.x +
+        (reducedMotion
+          ? 0
+          : (Math.sin(now / 137 + phase) + Math.sin(now / 59 + phase) * 0.35) * agitation * 1.6),
+      y:
+        base.y +
+        (reducedMotion
+          ? 0
+          : (Math.cos(now / 173 + phase) + Math.sin(now / 83 + phase) * 0.3) * agitation * 1.3),
+      scale: 1 + p * 0.06,
     };
   }
 }
@@ -136,6 +161,7 @@ export class NumberField {
     this.world = { seed: 1, columns: 256, rows: 160, clusters: [] };
     this.clusterCells = new Map();
     this.replacements = new Map();
+    this.refills = new Map();
     this.motion = null;
     this.particles = [];
     this.reducedMotion = !!options.reducedMotion;
@@ -203,9 +229,8 @@ export class NumberField {
       row = Math.floor(world.y / CELL_HEIGHT);
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
-        const cx = column + dx,
-          cy = row + dy;
-        if (cx < 0 || cy < 0 || cx >= this.world.columns || cy >= this.world.rows) continue;
+        const cx = (((column + dx) % this.world.columns) + this.world.columns) % this.world.columns,
+          cy = (((row + dy) % this.world.rows) + this.world.rows) % this.world.rows;
         const id = cy * this.world.columns + cx,
           p = this.basePosition(id, now);
         if (Math.abs(x - p.x) < 15 * this.camera.zoom && Math.abs(y - p.y) < 19 * this.camera.zoom)
@@ -217,14 +242,20 @@ export class NumberField {
     if (
       this.motion &&
       this.motion.releasedAt === null &&
-      Math.hypot(x - this.motion.origin.x, y - this.motion.origin.y) < 155 * this.camera.zoom
+      this.motion.cluster.cells.some((id) => {
+        const p = this.basePosition(id, now);
+        return Math.hypot(x - p.x, y - p.y) < 42 * this.camera.zoom;
+      })
     ) {
       this.motion.move(x, y, now);
       return this.motion.cluster;
     }
     this.leave(now);
     const hit = this.hitTest(x, y, now);
-    if (hit?.cluster) this.motion = new ClusterMotion(hit.cluster, x, y, now);
+    if (hit?.cluster) {
+      const origin = this.basePosition(hit.id, now);
+      this.motion = new ClusterMotion(hit.cluster, origin.x, origin.y, now);
+    }
     return this.motion?.releasedAt === null ? this.motion.cluster : null;
   }
   leave(now) {
@@ -251,6 +282,7 @@ export class NumberField {
         startedAt: now + index * 12,
         duration: this.reducedMotion ? 100 : 680,
       });
+      this.refills.set(id, now + 1100 + index * 35);
     }
     this.replace(cluster.cells, cluster.generation + 1);
     this.motion = null;
@@ -263,19 +295,30 @@ export class NumberField {
       width = this.camera.width,
       height = this.camera.height;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.fillStyle = '#061726';
+    ctx.fillStyle = '#030d1b';
     ctx.fillRect(0, 0, width, height);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `${22 * this.camera.zoom}px "Courier New", monospace`;
+    ctx.font = `bold ${22 * this.camera.zoom}px "Courier New", monospace`;
+    ctx.shadowColor = '#81d5ff';
+    ctx.shadowBlur = 4;
     const bounds = this.camera.visibleBounds();
     this.visibleCount = 0;
     for (let row = bounds.top; row < bounds.bottom; row++)
       for (let column = bounds.left; column < bounds.right; column++) {
-        const id = row * this.world.columns + column,
+        const id =
+            (((row % this.world.rows) + this.world.rows) % this.world.rows) * this.world.columns +
+            (((column % this.world.columns) + this.world.columns) % this.world.columns),
           p = this.basePosition(id, now);
+        const refill = this.refills.get(id);
+        if (refill !== undefined) {
+          ctx.globalAlpha = Math.max(0, Math.min(1, (now - refill) / 900));
+          if (ctx.globalAlpha === 1) this.refills.delete(id);
+        }
         ctx.fillStyle = this.clusterCells.has(id) ? '#9dcbd8' : '#88bacf';
-        ctx.fillText(String(this.value(id)), p.x, p.y);
+        if (!this.motion?.cluster.cells.includes(id))
+          ctx.fillText(String(this.value(id)), p.x, p.y);
+        ctx.globalAlpha = 1;
         this.visibleCount++;
       }
     if (this.motion) {
@@ -291,16 +334,14 @@ export class NumberField {
               this.reducedMotion,
               this.camera.zoom,
             );
-          ctx.font = `${22 * this.camera.zoom * p.scale}px "Courier New", monospace`;
-          ctx.fillStyle = this.motion.ready(now) ? '#e0f8f6' : '#bce5eb';
+          ctx.font = `bold ${22 * this.camera.zoom * p.scale}px "Courier New", monospace`;
+          ctx.lineWidth = Math.max(0.01, ((p.scale - 1) / 0.06) * 0.65 * this.camera.zoom);
+          const intensity = Math.max(0, Math.min(1, (p.scale - 1) / 0.06));
+          ctx.fillStyle = `rgb(${157 + intensity * 35}, ${203 + intensity * 24}, ${216 + intensity * 17})`;
+          ctx.strokeStyle = ctx.fillStyle;
+          if (intensity > 0) ctx.strokeText?.(String(this.value(id)), p.x, p.y);
           ctx.fillText(String(this.value(id)), p.x, p.y);
         }
-        const anchor = this.motion.anchorAt(now);
-        ctx.strokeStyle = this.motion.ready(now) ? '#d5f0d9' : '#8fb9c9';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(anchor.x, anchor.y, 9, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
-        ctx.stroke();
       }
     }
     const fx = this.effectContext;
@@ -330,5 +371,6 @@ export class NumberField {
     this.particles = [];
     this.clusterCells.clear();
     this.replacements.clear();
+    this.refills.clear();
   }
 }

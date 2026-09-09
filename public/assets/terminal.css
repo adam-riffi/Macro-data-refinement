@@ -2,7 +2,7 @@
   color-scheme: dark;
   font-family: 'Courier New', monospace;
   color: #b8d9e2;
-  background: #061726;
+  background: #030d1b;
   font-synthesis: none;
 }
 * {
@@ -22,7 +22,7 @@ select {
   color: inherit;
   border: 1px solid #6892a6;
   border-radius: 0;
-  background: #061726;
+  background: #030d1b;
 }
 button {
   cursor: pointer;
@@ -74,7 +74,7 @@ button:disabled {
   left: 0;
   right: 0;
   padding: 18px 3.5% 0;
-  background: #061726;
+  background: #030d1b;
 }
 .file-line,
 .quota-line,
@@ -124,11 +124,11 @@ progress {
   width: 100%;
   height: 10px;
   border: 1px solid #88aebb;
-  background: #061726;
+  background: #030d1b;
   color: #b8d9e2;
 }
 progress::-webkit-progress-bar {
-  background: #061726;
+  background: #030d1b;
 }
 progress::-webkit-progress-value {
   background: #b8d9e2;
@@ -155,7 +155,7 @@ progress::-moz-progress-bar {
   display: flex;
   gap: 4px;
   align-items: center;
-  background: #061726e8;
+  background: #030d1be8;
 }
 .zoom-controls output {
   font-size: 11px;
@@ -168,7 +168,7 @@ progress::-moz-progress-bar {
   right: 3.5%;
   bottom: 206px;
   padding: 7px;
-  background: #061726ef;
+  background: #030d1bef;
   border: 1px solid #426578;
   pointer-events: none;
 }
@@ -190,7 +190,7 @@ progress::-moz-progress-bar {
   right: 0;
   z-index: 4;
   padding: 10px 3.5% max(8px, env(safe-area-inset-bottom));
-  background: #061726;
+  background: #030d1b;
   border-top: 1px solid #426578;
 }
 .readout-line {
@@ -249,18 +249,58 @@ progress::-moz-progress-bar {
   margin: 4px 0 0;
   color: #8cafc2;
 }
+/* Glass, phosphor mask and a slow vertical refresh band. */
 .crt {
   pointer-events: none;
   position: absolute;
   inset: 0;
   z-index: 7;
-  box-shadow: inset 0 0 90px #0005;
-  background: repeating-linear-gradient(
-    transparent 0,
-    transparent 3px,
-    #00000012 3px,
-    #00000012 4px
-  );
+  overflow: hidden;
+  border-radius: 28px / 22px;
+  background:
+    repeating-linear-gradient(0deg, #0005 0, #0005 1px, transparent 1px, transparent 3px),
+    repeating-linear-gradient(90deg, #67cfff08 0, #67cfff08 1px, #0000000a 1px, #0000000a 3px);
+  box-shadow:
+    inset 0 0 4px 3px #000,
+    inset 0 0 24px 8px #000a,
+    inset 0 0 130px 20px #0007;
+}
+.crt::before {
+  content: '';
+  position: absolute;
+  inset: -35% 0 100%;
+  background: linear-gradient(transparent, #9ddfff06 45%, #b7eaff0d 90%, transparent);
+  animation: crt-refresh 19s linear infinite;
+}
+.crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 48%, #00000042 100%),
+    radial-gradient(ellipse at 38% -25%, #c7eaff12, transparent 62%);
+  box-shadow:
+    inset 0 2px 2px #d1efff33,
+    inset 0 -2px 3px #79b6cf21;
+}
+@keyframes crt-refresh {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(400vh);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crt::before {
+    animation: none;
+    display: none;
+  }
+}
+#terminal:has(#motion-setting:checked) .crt::before {
+  animation: none;
+  display: none;
 }
 .sr-only {
   position: absolute;
@@ -281,17 +321,17 @@ progress::-moz-progress-bar {
   transform: translateX(-50%);
   max-width: 90%;
   padding: 16px;
-  box-shadow: 0 0 0 10px #061726;
+  box-shadow: 0 0 0 10px #030d1b;
 }
 dialog {
   width: min(590px, calc(100% - 32px));
   max-height: calc(100% - 48px);
   border: 2px solid #a8d0d9;
-  background: #061726;
+  background: #030d1b;
   color: #c4e1e8;
   padding: 22px;
   box-shadow:
-    0 0 0 6px #061726,
+    0 0 0 6px #030d1b,
     0 0 0 7px #4d7187;
   line-height: 1.65;
   font-size: 13px;
@@ -358,7 +398,7 @@ noscript {
   position: fixed;
   top: 35%;
   padding: 30px;
-  background: #061726;
+  background: #030d1b;
   z-index: 10;
 }
 @media (max-width: 600px) {
@@ -459,5 +499,110 @@ noscript {
   }
   .bin-label > span {
     font-size: 15px;
+  }
+}
+
+/* The case sits over the viewport so pointer and canvas coordinates stay aligned. */
+#terminal {
+  background: #020914;
+  border-radius: 28px / 22px;
+  overflow: hidden;
+  text-shadow:
+    0 0 3px #92dcff80,
+    0 0 9px #49afff40,
+    0.6px 0 #75dfff30;
+}
+#terminal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  border: 7px solid #080e14;
+  border-radius: 28px / 22px;
+  box-shadow:
+    inset 0 0 0 1px #57717c66,
+    inset 0 0 0 3px #000b;
+}
+.terminal-header {
+  background: linear-gradient(#061323, #030d1b 85%);
+  padding-top: max(24px, env(safe-area-inset-top));
+}
+h1 {
+  text-shadow:
+    0 0 4px #b5ecff99,
+    0 0 16px #6ecbff55;
+}
+.department-mark {
+  box-shadow:
+    0 0 5px #9bdcff55,
+    inset 0 0 5px #9bdcff33;
+}
+.terminal-footer {
+  background: linear-gradient(#030d1b, #061323);
+  padding-bottom: max(15px, env(safe-area-inset-bottom));
+  box-shadow: 0 -1px 7px #69c5ed26;
+}
+.bin {
+  background: linear-gradient(110deg, #8bdcff09, transparent 70%);
+  box-shadow:
+    0 0 5px #8ed8f52b,
+    inset 0 0 8px #8ed8f512;
+}
+progress {
+  box-shadow: 0 0 5px #8ed8f533;
+}
+button {
+  text-shadow: inherit;
+  transition:
+    background-color 120ms,
+    box-shadow 120ms;
+}
+button:hover {
+  background: #16364b;
+  box-shadow:
+    inset 0 0 12px #91dfff22,
+    0 0 9px #76d1ff33;
+}
+.position-map {
+  box-shadow:
+    0 0 8px #71c4f026,
+    inset 0 0 14px #6ab5e010;
+}
+dialog {
+  background:
+    repeating-linear-gradient(0deg, #0002 0, #0002 1px, transparent 1px, transparent 3px), #051323;
+  text-shadow: 0 0 5px #82cfff55;
+  box-shadow:
+    0 0 0 6px #030d1b,
+    0 0 0 7px #4d7187,
+    0 0 45px #56bfff26,
+    inset 0 0 35px #0005;
+}
+dialog::backdrop {
+  background: #020812c9;
+  backdrop-filter: blur(2px);
+}
+@media (max-width: 600px) {
+  #terminal,
+  .crt,
+  #terminal::after {
+    border-radius: 18px / 15px;
+  }
+  #terminal::after {
+    border-width: 4px;
+  }
+  .terminal-header {
+    padding-top: max(19px, env(safe-area-inset-top));
+  }
+  .crt {
+    box-shadow:
+      inset 0 0 4px 2px #000,
+      inset 0 0 50px #0007;
+  }
+}
+@media (max-height: 550px) and (min-width: 601px) {
+  .terminal-header {
+    padding-top: 10px;
   }
 }

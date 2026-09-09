@@ -389,7 +389,7 @@ test('RefinementTerminal.frame throttles drawing updates gathering feedback and 
   const cluster = terminal.state.world.clusters[0];
   field.motion = new ClusterMotion(cluster, 500, 350, 1000);
   terminal.frame(1750);
-  assert.match(terminal.element('feedback').textContent, /GATHERING 50%/);
+  assert.match(terminal.element('feedback').textContent, /IDENTIFYING 50%/);
   assert.equal(terminal.lastSave, 1750);
   assert.ok(store.view('file-one'));
   terminal.frame(2500);

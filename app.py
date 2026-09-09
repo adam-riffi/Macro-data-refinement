@@ -91,7 +91,7 @@ def create_app(config: dict | None = None, clock: Callable[[], float] = time.tim
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="1.0.0")
+        return jsonify(status="ok", version="2.0.0")
 
     @app.post("/api/session")
     def new_session():

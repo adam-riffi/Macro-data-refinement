@@ -107,7 +107,7 @@ export class RefinementTerminal {
         const ready = motion.ready(now);
         this.element('feedback').textContent = ready
           ? `${motion.cluster.cells.length} NUMBERS · CLICK TO REFINE`
-          : `GATHERING ${Math.floor(motion.progress(now) * 100)}% · STAY CLOSE`;
+          : `IDENTIFYING ${Math.floor(motion.progress(now) * 100)}% · STAY CLOSE`;
       } else if (this.gatheringFeedback && !this.busy)
         this.notify('Signal released. Continue refinement.');
       const second = Math.floor(now / 1000);
@@ -450,7 +450,7 @@ export class RefinementTerminal {
       return;
     }
     if (this.field.motion?.releasedAt === null) {
-      this.notify('Let the numbers gather. Early clicks carry no penalty.');
+      this.notify('Let the signal spread. Early clicks carry no penalty.');
       return;
     }
     if (!Number.isFinite(x) || !Number.isFinite(y)) {
