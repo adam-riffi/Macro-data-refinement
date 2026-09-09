@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#030d1b" />
+    <meta
+      name="description"
+      content="An unofficial, Severance-inspired macrodata refinement terminal. Explore, feel, refine."
+    />
+    <title>Macrodata Refinement</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/terminal.css" />
+    <script type="module" src="/assets/terminal-boot.js"></script>
+  </head>
+  <body>
+    <main id="terminal" aria-label="Macrodata refinement workstation">
+      <canvas
+        id="number-field"
+        tabindex="0"
+        role="img"
+        aria-label="Explorable number field. Drag to navigate, scroll to zoom. Keyboard: arrows to navigate, F to focus a visible signal, Enter to refine after gathering."
+        aria-describedby="keyboard-help"
+      ></canvas>
+      <header class="terminal-header">
+        <div class="file-line">
+          <h1 id="file-name">Cold Harbor</h1>
+          <span class="department-mark" aria-label="Macrodata refinement department"
+            >MDR<span>DATA REFINEMENT</span></span
+          >
+        </div>
+        <div class="quota-line">
+          <span id="assignment-label">QUOTA / NORMAL</span><span id="completion">0% COMPLETE</span>
+        </div>
+        <progress
+          id="overall-progress"
+          max="100"
+          value="0"
+          aria-label="Assignment completion"
+        ></progress>
+      </header>
+      <nav class="terminal-tools" aria-label="Terminal controls">
+        <div>
+          <button id="assignment-button" type="button">[ FILE ]</button
+          ><button id="settings-button" type="button">[ CONFIG ]</button
+          ><button id="help-button" type="button">[ ? ]</button>
+        </div>
+        <div class="zoom-controls">
+          <button id="zoom-out" type="button" aria-label="Zoom out">−</button
+          ><output id="zoom-label" aria-label="Zoom level">100%</output
+          ><button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+        </div>
+      </nav>
+      <aside
+        class="position-map"
+        aria-label="Position in the world; does not reveal hidden clusters"
+      >
+        <canvas id="map" width="128" height="80" aria-hidden="true"></canvas
+        ><span>SECTOR <output id="sector">128:080</output></span>
+      </aside>
+      <footer class="terminal-footer">
+        <div class="readout-line">
+          <span id="feedback">ESTABLISHING CONNECTION<span class="cursor">_</span></span
+          ><span id="run-clock">UNTIMED</span>
+        </div>
+        <section class="bins" aria-label="Refinement bins">
+          {% for number in range(1, 6) %}
+          <div class="bin" id="bin-{{ number }}">
+            <div class="bin-label">
+              <span>0{{ number }}</span><output id="bin-count-{{ number }}">000 / 100</output>
+            </div>
+            <div class="bin-tray"><span>WO</span><span>FC</span><span>DR</span><span>MA</span></div>
+            <progress
+              id="bin-progress-{{ number }}"
+              value="0"
+              max="100"
+              aria-label="Bin {{ number }} completion"
+            ></progress>
+          </div>
+          {% endfor %}
+        </section>
+        <div class="bottom-line">
+          <span id="coordinates">0x0080 : 0x0050</span><span id="score">000000 PTS</span
+          ><button id="signals-button" type="button">[ F ] SIGNAL</button
+          ><button id="history-button" type="button">[ LOG ]</button>
+        </div>
+        <p id="keyboard-help">
+          DRAG TO EXPLORE · SCROLL / PINCH TO ZOOM · HOVER / HOLD TO GATHER · CLICK / RELEASE TO
+          REFINE
+        </p>
+      </footer>
+      <canvas id="flight-layer" aria-hidden="true"></canvas>
+      <div class="crt" aria-hidden="true"></div>
+      <p id="announcer" class="sr-only" role="status" aria-live="polite"></p>
+      <button id="retry-button" type="button" hidden>CONNECTION INTERRUPTED · RETRY</button>
+      <dialog id="terminal-dialog" aria-labelledby="dialog-title">
+        <div class="dialog-heading">
+          <h2 id="dialog-title">TERMINAL</h2>
+          <button id="close-dialog" type="button" aria-label="Close dialog">[ ESC ]</button>
+        </div>
+        <p id="dialog-feedback" role="alert"></p>
+        <section id="assignment-panel" hidden>
+          <p>OPEN A NEW ASSIGNMENT</p>
+          <p class="muted">
+            Your current v2 file will be replaced only after the new file connects. Legacy saves are
+            kept separately.
+          </p>
+          <form id="assignment-form">
+            <label
+              >FILE NAME<input
+                id="new-file"
+                name="file"
+                maxlength="48"
+                required
+                value="Cold Harbor"
+                autocomplete="off"
+            /></label>
+            <label
+              >GAMEPLAY<select id="new-mode" name="mode">
+                <option value="quota">Quota · untimed</option>
+                <option value="timed">Timed shift · 15 minutes</option>
+                <option value="endless">Endless · rolling quotas</option>
+              </select></label
+            >
+            <label
+              >DIFFICULTY<select id="new-difficulty" name="difficulty">
+                <option value="normal">Normal · no penalty</option>
+                <option value="quota_achiever">Quota achiever · −50 points</option>
+                <option value="quarter_refiner">Refiner of the quarter · 3 strikes</option>
+              </select></label
+            >
+            <p class="muted">
+              Each bin requires 100 numbers. Larger clusters earn more points. Gathering takes 1.5
+              seconds on every difficulty.
+            </p>
+            <button type="submit" id="start-button">[ BEGIN REFINEMENT ]</button>
+          </form>
+        </section>
+        <section id="settings-panel" hidden>
+          <label class="check"><input type="checkbox" id="sound-setting" /> TERMINAL SOUND</label
+          ><label class="check"><input type="checkbox" id="motion-setting" /> REDUCED MOTION</label>
+          <p class="muted">
+            Reduced motion keeps numbers stationary while preserving identification time and
+            boldening. Settings are saved on this device.
+          </p>
+        </section>
+        <section id="help-panel" hidden>
+          <p>The work is mysterious. Trust the way the numbers feel.</p>
+          <dl>
+            <dt>EXPLORE</dt>
+            <dd>
+              Drag the field or use arrow keys / WASD. Scroll or pinch to zoom into a particular
+              region. + and − zoom at the center. The position map shows your viewport, never hidden
+              groups.
+            </dd>
+            <dt>GATHER</dt>
+            <dd>
+              Hover over an unsettling number. Agitation slowly spreads outward through its group:
+              the digits thicken and tremble in place. Stay nearby, then click to refine.
+            </dd>
+            <dt>REFINE</dt>
+            <dd>
+              Click the gathered group. Its numbers fly to the correct bin automatically. Fresh
+              digits fade into the empty spaces after a short pause, and a new group appears
+              elsewhere in the region.
+            </dd>
+            <dt>TOUCH / KEYBOARD</dt>
+            <dd>
+              Hold a number to gather, release once ready to refine. Two fingers pan and pinch. F
+              cycles signals already visible in the field; Enter or Space refines the focused group
+              after gathering.
+            </dd>
+            <dt>DIFFICULTY</dt>
+            <dd>
+              Ordinary-number clicks are harmless on Normal, cost up to 50 points on Quota achiever,
+              and give a strike on Refiner of the quarter. Three strikes end that file. Early
+              gathering clicks never count as mistakes.
+            </dd>
+            <dt>SAVE</dt>
+            <dd>
+              Your signed file, camera, and replacement digits save locally. A timed shift keeps
+              running while you are away. Reconnect within 24 hours to renew your save.
+            </dd>
+          </dl>
+          <p class="muted">
+            Unofficial fan project inspired by Severance. Not affiliated with Apple or the show's
+            creators.
+          </p>
+        </section>
+        <section id="history-panel" hidden>
+          <p>LOCAL REFINEMENT LOG · LAST 30 FILES</p>
+          <ol id="history-list"></ol>
+          <p class="muted">Stored only in this browser. No account or shared leaderboard.</p>
+        </section>
+        <section id="result-panel" hidden>
+          <p id="result-summary"></p>
+          <button id="next-assignment" type="button">[ OPEN ANOTHER FILE ]</button>
+        </section>
+      </dialog>
+    </main>
+    <noscript>This refinement terminal requires JavaScript for its animated number field.</noscript>
+  </body>
+</html>

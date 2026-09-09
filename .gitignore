@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local browser tooling, deployment metadata, and owner material
+node_modules/
+.vercel/
+artifacts/
+playwright-report/
+test-results/
+owner-docs/
+private-docs/
+*.local
